@@ -1,15 +1,10 @@
-const { ccclass, property, menu } = cc._decorator;
+const { ccclass, property } = cc._decorator;
 
 @ccclass
 export class PlaySpineAnimByKey extends cc.Component {
 
-    private _animation: sp.Skeleton = null;
-    private get animation(): sp.Skeleton {
-        if (!this._animation) {
-            this._animation = this.getComponent(sp.Skeleton);
-        }
-        return this._animation;
-    }
+    @property({ type: sp.Skeleton, visible: true })
+    private animation: sp.Skeleton = null;
 
     private _completionDict: Dictionary<() => void> = {};
 
@@ -17,6 +12,10 @@ export class PlaySpineAnimByKey extends cc.Component {
 
     public get playingAnim(): string {
         return this._playingAnim;
+    }
+
+    onRestore() {
+        this.animation = this.animation || this.node.getComponent(sp.Skeleton);
     }
 
     public animNameList() {
@@ -30,8 +29,6 @@ export class PlaySpineAnimByKey extends cc.Component {
         if (key && key.length) {
             key = key.toLowerCase();
 
-            this.animation.setCompleteListener(this.onSpineAnimEnded.bind(this));
-
             const clipList = Object.keys(this.animation.skeletonData.skeletonJson.animations);
             for (let i = 0; i < clipList.length; i++) {
                 if (clipList[i] && clipList[i].toLowerCase().indexOf(key) != -1) {
@@ -39,12 +36,14 @@ export class PlaySpineAnimByKey extends cc.Component {
                     break;
                 }
             }
-
-            if (!clip) return;
         }
         else {
             clip = this.animation.animation;
         }
+
+        if (!clip) return;
+
+        this.animation.setCompleteListener(this.onSpineAnimEnded.bind(this));
 
         if (completion) {
             this._completionDict = this._completionDict || {};
@@ -54,7 +53,6 @@ export class PlaySpineAnimByKey extends cc.Component {
         this._playingAnim = clip;
         this.animation.setToSetupPose();
         this.animation.setAnimation(0, clip, isLoop);
-
     }
 
     private onSpineAnimEnded(entry: { animation: { name: string }, trackIndex: number }) {

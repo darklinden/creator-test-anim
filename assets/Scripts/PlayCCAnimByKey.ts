@@ -1,15 +1,10 @@
-const { ccclass, property, menu } = cc._decorator;
+const { ccclass, property } = cc._decorator;
 
 @ccclass
 export class PlayCCAnimByKey extends cc.Component {
 
-    private _animation: cc.Animation = null;
-    private get animation(): cc.Animation {
-        if (!this._animation) {
-            this._animation = this.getComponent(cc.Animation);
-        }
-        return this._animation;
-    }
+    @property({ type: cc.Animation, visible: true })
+    private animation: cc.Animation = null;
 
     private _completionDict: Dictionary<() => void> = {};
 
@@ -17,6 +12,10 @@ export class PlayCCAnimByKey extends cc.Component {
 
     public get playingAnim(): string {
         return this._playingAnim;
+    }
+
+    onRestore() {
+        this.animation = this.animation || this.node.getComponent(cc.Animation);
     }
 
     public animNameList() {
@@ -47,24 +46,24 @@ export class PlayCCAnimByKey extends cc.Component {
             clip = this.animation.defaultClip.name;
         }
 
-        this.animation.play(clip, 0);
-        this.scheduleOnce(() => {
-            this.animation.pause();
-            this.animation.setCurrentTime(0, clip);
-            this.animation.sample(clip);
-        });
+        this.animation.setCurrentTime(0, clip);
+        this.animation.pause(clip);
+        this.animation.sample(clip);
     }
 
     public zzPlay(key: string = null, completion: () => void = null) {
         if (!this.animation) return;
 
+        this.animation.stop();
+
         if (!(key && key.length)) {
             key = this.animation.defaultClip.name;
+            if (!(key && key.length)) {
+                key = this.animation.getClips().length > 0 ? this.animation.getClips()[0].name : '';
+            }
         }
 
-        key = key.toLowerCase();
-
-        this.animation.on('finished', this.onCCAnimEnded, this);
+        if (key) key = key.toLowerCase();
 
         let clip: string = null;
         const clipList = this.animation.getClips();
@@ -76,6 +75,8 @@ export class PlayCCAnimByKey extends cc.Component {
         }
 
         if (!clip) return;
+
+        this.animation.on('finished', this.onCCAnimEnded, this);
 
         if (completion) {
             this._completionDict = this._completionDict || {};

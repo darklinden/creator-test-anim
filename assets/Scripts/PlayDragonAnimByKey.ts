@@ -1,15 +1,10 @@
-const { ccclass, property, menu } = cc._decorator;
+const { ccclass, property } = cc._decorator;
 
 @ccclass
 export class PlayDragonAnimByKey extends cc.Component {
 
-    private _animation: dragonBones.ArmatureDisplay = null;
-    private get animation(): dragonBones.ArmatureDisplay {
-        if (!this._animation) {
-            this._animation = this.getComponent(dragonBones.ArmatureDisplay);
-        }
-        return this._animation;
-    }
+    @property({ type: dragonBones.ArmatureDisplay, visible: true })
+    private animation: dragonBones.ArmatureDisplay = null;
 
     private _completionDict: Dictionary<() => void> = {};
 
@@ -17,6 +12,10 @@ export class PlayDragonAnimByKey extends cc.Component {
 
     public get playingAnim(): string {
         return this._playingAnim;
+    }
+
+    onRestore() {
+        this.animation = this.animation || this.node.getComponent(dragonBones.ArmatureDisplay);
     }
 
     public animNameList() {
@@ -38,8 +37,6 @@ export class PlayDragonAnimByKey extends cc.Component {
         if (key && key.length) {
             key = key.toLowerCase();
 
-            this.animation.on(dragonBones.EventObject.COMPLETE, this.onDragonBonesAnimEnded, this);
-
             const armature = this.animation.getArmatureNames();
             for (const k in armature) {
                 const clipList = this.animation.getAnimationNames(armature[k]);
@@ -50,12 +47,14 @@ export class PlayDragonAnimByKey extends cc.Component {
                     }
                 }
             }
-
-            if (!clip) return;
         }
         else {
             clip = this.animation.animationName;
         }
+
+        if (!clip) return;
+
+        this.animation.on(dragonBones.EventObject.COMPLETE, this.onDragonBonesAnimEnded, this);
 
         if (completion) {
             this._completionDict = this._completionDict || {};
@@ -63,8 +62,7 @@ export class PlayDragonAnimByKey extends cc.Component {
         }
 
         this._playingAnim = clip;
-        this.animation && (this.animation.playAnimation(clip, isLoop ? 0 : -1));
-
+        this.animation && (this.animation.playAnimation(clip, isLoop ? 0 : 1));
     }
 
     private onDragonBonesAnimEnded(event: cc.Event, placeholder?: any) {
